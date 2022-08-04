@@ -7,7 +7,7 @@ const rl = readline.createInterface({
 
 let currentStr, replaceStr;
 
-const replaceRecursively = (folderName) => {
+const replaceFilesRecursively = async (folderName) => {
     fs.readdir(folderName, { withFileTypes: true }, (err, files) => {
         if (err) throw err;
 
@@ -16,7 +16,7 @@ const replaceRecursively = (folderName) => {
                 if (filename.name == 'images') {
                     return
                 } else {
-                    replaceRecursively(`${folderName}/${filename.name}`)
+                    replaceFilesRecursively(`${folderName}/${filename.name}`)
                 }
                 return
             } else {
@@ -34,7 +34,24 @@ const replaceRecursively = (folderName) => {
             }
         });
     });
-    console.log('Job done')
+}
+
+const replaceFoldersRecursively = async (folderName) => {
+    fs.readdir(folderName, { withFileTypes: true }, (err, folders) => {
+        if (err) throw err;
+
+        folders.forEach((filename) => {
+            if (filename.isDirectory()) {
+                if (filename.name == currentStr) {
+                    fs.rename(`./${currentStr}/images/${currentStr}`, `./${currentStr}/images/${replaceStr}`, function (err) {
+                        if (err) throw err;
+                    })
+                } else {
+                    replaceFoldersRecursively(`${folderName}/${filename.name}`)
+                }
+            }
+        })
+    })
 }
 
 rl.question('What is current name of merchant folder ? ', function (current) {
@@ -45,4 +62,12 @@ rl.question('What is current name of merchant folder ? ', function (current) {
     });
 });
 
-rl.on('close', () => replaceRecursively(currentStr))
+rl.on('close', async () => {
+    try {
+        const replaceFiles = await replaceFilesRecursively(currentStr)
+        const replaceFolders = await replaceFoldersRecursively(currentStr)
+        console.log('Job is done finally')
+    } catch {
+        console.error('Job not done :(')
+    }
+})
